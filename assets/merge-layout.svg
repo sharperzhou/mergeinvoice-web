@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 430" font-family="'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif">
+  <!-- 标题 -->
+  <text x="170" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#0f172a">单张 A4 输出页</text>
+
+  <!-- A4 页面外框 -->
+  <rect x="50" y="32" width="240" height="340" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+
+  <!-- 上半区：发票 A -->
+  <rect x="68" y="50" width="204" height="134" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+  <text x="170" y="108" text-anchor="middle" font-size="13" font-weight="600" fill="#1d4ed8">发票 A · A5</text>
+  <text x="170" y="128" text-anchor="middle" font-size="10.5" fill="#64748b">顶部对齐 · 水平居中</text>
+
+  <!-- 中线裁切标记：左右各一段短黑线，中部浅色虚线 -->
+  <line x1="50" y1="202" x2="70" y2="202" stroke="#000000" stroke-width="1.4"/>
+  <line x1="270" y1="202" x2="290" y2="202" stroke="#000000" stroke-width="1.4"/>
+  <line x1="70" y1="202" x2="270" y2="202" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="5 4"/>
+  <text x="170" y="194" text-anchor="middle" font-size="9.5" fill="#94a3b8">裁切标记（左右各 10pt 短线）</text>
+
+  <!-- 下半区：发票 B（旋转 180°） -->
+  <rect x="68" y="220" width="204" height="134" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+  <text x="170" y="278" text-anchor="middle" font-size="13" font-weight="600" fill="#1d4ed8">发票 B · A5</text>
+  <text x="170" y="298" text-anchor="middle" font-size="10.5" fill="#64748b">旋转 180° · 水平居中</text>
+
+  <!-- 旋转指示箭头 -->
+  <g transform="translate(304 287)">
+    <path d="M0,-10 A10,10 0 1,1 -7,7" fill="none" stroke="#7c3aed" stroke-width="1.6"/>
+    <path d="M-9.5,2 L-7,8.5 L-3,4.5 Z" fill="#7c3aed"/>
+  </g>
+
+  <!-- 底部说明 -->
+  <text x="170" y="398" text-anchor="middle" font-size="10.5" fill="#64748b">奇数张时最后一张单独成页，中线裁切标记照常绘制</text>
+</svg>

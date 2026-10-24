@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="专业的 A5 发票双联拼版工具：两张 A5 版式发票自动合并至单张 A4（第二张旋转 180°），页缘附裁切标记，支持数字签名与电子印章外观保留，纯浏览器本地解析，文件数据不出本机。" />
+    <title>发票拼版工具 · A5 双联拼 A4 | Sharper</title>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="app-header-inner">
+        <h1>发票拼版工具</h1>
+        <p>双联拼版：将两张 A5 版式发票合并排版至单张 A4（第二张旋转 180°），页缘附裁切标记线 · 全流程浏览器本地解析，文件数据不出本机</p>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <nav class="stepper" aria-label="操作步骤">
+        <button type="button" class="step-item is-current" data-step="1" aria-current="step">
+          <span class="step-badge">1</span><span class="step-name">导入发票</span>
+        </button>
+        <span class="step-line" aria-hidden="true"></span>
+        <button type="button" class="step-item" data-step="2" disabled>
+          <span class="step-badge">2</span><span class="step-name">合并</span>
+        </button>
+        <span class="step-line" aria-hidden="true"></span>
+        <button type="button" class="step-item" data-step="3" disabled>
+          <span class="step-badge">3</span><span class="step-name">下载 / 打印</span>
+        </button>
+      </nav>
+
+      <section class="card panel" id="import-card" aria-label="第 1 步：导入发票">
+        <h2>导入发票</h2>
+        <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-controls="file-input">
+          <p class="dz-title">点击选择或拖拽 PDF 文件至此区域</p>
+          <p class="dz-sub">支持批量导入与重复内容检测 · 单个 PDF 最多 10 页，超出将被拒绝导入 · 导入后可按页删除不要的页面 · 自动保留数字签名及电子印章的可视外观</p>
+        </div>
+        <input id="file-input" type="file" accept=".pdf,application/pdf" multiple hidden />
+        <ul id="file-list" class="file-list"></ul>
+        <div class="panel-actions">
+          <button id="clear-btn" class="btn" type="button" disabled>清空全部</button>
+          <button id="next-btn" class="btn btn-primary" type="button" disabled>下一步：合并</button>
+        </div>
+      </section>
+
+      <section class="card panel" id="merge-card" hidden aria-label="第 2 步：合并">
+        <h2>合并</h2>
+        <div id="merge-summary" class="summary"></div>
+        <p class="hint">合并规则：A5 发票两两拼版至单张 A4（第二张旋转 180°，中线附裁切标记）；A4 整页逐张输出；输出顺序以导入列表为准，可在上一步拖拽调整。</p>
+        <div class="panel-actions">
+          <button id="back-btn-1" class="btn" type="button">上一步</button>
+          <button id="merge-btn" class="btn btn-primary" type="button" disabled>开始合并</button>
+        </div>
+      </section>
+
+      <section class="card panel" id="result-card" hidden aria-label="第 3 步：下载与打印">
+        <h2>下载与打印</h2>
+        <div class="toolbar">
+          <button id="download-btn" class="btn" type="button">下载 PDF</button>
+          <button id="print-btn" class="btn btn-primary" type="button">打印</button>
+        </div>
+        <p class="hint">浏览器未提供本地打印机枚举接口：点击「打印」后请在系统打印对话框中选择目标打印机。推荐打印参数：纸张 A4、缩放 100%（实际大小）、页边距 无。可点击页面右上角 × 删除单页，或拖拽调整页面顺序，下载与打印均按当前预览顺序输出。</p>
+        <div id="result-pages" class="page-grid"></div>
+        <div class="panel-actions">
+          <button id="back-btn-2" class="btn" type="button">上一步</button>
+        </div>
+      </section>
+
+      <p id="status" class="status-bar" role="status" aria-live="polite">请导入待拼版的发票文件</p>
+    </main>
+
+    <div id="modal" class="modal" hidden>
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-head">
+          <span id="modal-title" class="modal-title"></span>
+          <button id="modal-close" class="modal-close" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="modal-body"><canvas id="modal-canvas"></canvas></div>
+      </div>
+    </div>
+
+    <div id="print-root" aria-hidden="true"></div>
+
+    <footer class="app-footer">
+      © <span id="copyright-year">2026</span> Sharper 版权所有 · All Rights Reserved
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
