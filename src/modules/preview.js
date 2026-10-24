@@ -1,6 +1,8 @@
+// 兼容补丁必须先于 pdf.js 执行（旧版移动端浏览器缺少 Promise.withResolvers 等 API）
+import './polyfills.js';
 import * as pdfjsLib from 'pdfjs-dist';
-// 通过 Vite ?url 导入 worker 入口，构建后为独立资源文件；workerSrc 指向它
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+// 自定义 Worker 入口（内部先注入补丁再加载 pdf.js worker），以 ES module 形式打包后取 URL
+import workerUrl from '../pdf-worker.js?worker&url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 

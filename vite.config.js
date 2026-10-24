@@ -8,6 +8,8 @@ const pdfjsAssets = ['cmaps', 'standard_fonts', 'wasm', 'iccs'];
 export default defineConfig({
   // 相对路径部署：产物不绑定域名根路径，可放在任意子目录/本地静态服务器下打开
   base: './',
+  // pdf.js 以 { type: 'module' } 创建 Worker，自定义 Worker 入口须同样输出 ES module
+  worker: { format: 'es' },
   plugins: [
     viteStaticCopy({
       targets: pdfjsAssets.map((name) => ({
