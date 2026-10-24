@@ -44,7 +44,7 @@ npm.cmd run preview  # 预览构建产物
 - **pdf-lib**：`PDFObject` 没有 `.ref`；字符串经 `context.obj()` 会变 `PDFName`（不带前导斜杠）；typed `lookup` 类型不符会抛错（用 try/catch 包住）；`page.node.MediaBox()` 缺失时抛错；`PDFArray` 有 `get/insert/remove`。
 - **重排/删页**：`/Kids` 在 `/Pages` 节点上（`catalog.lookup(PDFName.of('Pages'))`），**不在**文档目录上；数组元素为页面引用，改动后 `save` 生效。`removePage`/`getPageCount` 可直接用。
 - **已保存 PDF 的内容流是 Flate 压缩的**：测试断言读页面内容须用 `decodePDFRawStream(stream).decode()`（夹具 `helpers.mjs` 已封装）；印章/签名文本在嵌入页 XObject 内，用 `readXObjectContents(page)`。
-- **pdf.js v5**：worker 用自定义入口 `src/pdf-worker.js`（先导入 `./modules/polyfills.js` 再加载 pdf.js worker，经 `?worker&url` 打包），`vite.config.js` 必须保留 `worker: { format: 'es' }`（pdf.js 固定用 `{ type: 'module' }` 创建 Worker）；旧版移动端浏览器缺少 `Promise.withResolvers`，主线程与 Worker 线程都要打补丁；`render` 传 `transform`（dpr 放大）；同一 canvas 连续渲染先 abort 旧任务。
+- **pdf.js v5**：worker 用自定义入口 `src/pdf-worker.js`（先导入 `./modules/polyfills.js` 再加载 pdf.js worker，经 `?worker&url` 打包），`vite.config.js` 必须保留 `worker: { format: 'es' }`（pdf.js 固定用 `{ type: 'module' }` 创建 Worker）；旧版移动端浏览器缺少 `Promise.withResolvers`、`URL.parse`、`Promise.try`、`Set` 集合方法等新 API，新报错须在 `polyfills.js` 补齐（主线程与 Worker 共用同一份）；`render` 传 `transform`（dpr 放大）；同一 canvas 连续渲染先 abort 旧任务。
 - **注释一律用中文**（项目约定，源码与测试都要有注释）。
 - **文件编码统一 UTF-8（无 BOM）**：中文 Windows 环境默认编码为 GBK/GB2312，用系统默认编码写文件会导致中文注释/文档乱码。
   - 所有源码、测试、Markdown、HTML、JSON/配置文件必须保存为 **UTF-8 无 BOM**；新增 HTML 文件须声明 `<meta charset="UTF-8">`；
