@@ -66,6 +66,7 @@ npm test           # 单元测试（node --test，18 个用例）
 ```
 MergeInvoice-web/
 ├── index.html              # 向导式三步骤界面（导入 → 合并 → 下载/打印）
+├── public/favicon.svg      # 站点图标
 ├── vite.config.js          # base './' 相对路径部署 + pdf.js 运行时资源复制
 ├── src/
 │   ├── main.js             # 全部 UI 状态与交互（导入/页管理/排序/结果编辑/打印）

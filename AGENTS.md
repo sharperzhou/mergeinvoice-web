@@ -19,7 +19,8 @@ npm.cmd run preview  # 预览构建产物
 
 | 文件 | 职责 |
 | --- | --- |
-| `index.html` | 向导三步骤（导入 → 合并 → 下载/打印）、步骤条、弹窗、页脚 |
+| `index.html` | 向导三步骤（导入 → 合并 → 下载/打印）、步骤条、弹窗、页脚（引用 `%BASE_URL%favicon.svg`） |
+| `public/favicon.svg` | 站点图标（SVG，Vite 原样复制到 dist 根目录） |
 | `src/main.js` | 全部 UI 状态与交互：导入/去重/页数上限、页管理（删页）、步骤切换、结果页删除与拖拽排序、拖拽自动滚动、resize 重渲染 |
 | `src/styles.css` | 样式（容器 `min(1600px, 100% - 40px)` 自适应；预览框 aspect-ratio） |
 | `src/modules/invoices.js` | 记录创建、页分类、`countKinds`/`isMergeable`、内容哈希去重、`MAX_IMPORT_PAGES=10` 与 `probePageCount` |

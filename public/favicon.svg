@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 品牌底色：与站点主色一致的蓝色渐变圆角方块 -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e3a8a"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+
+  <!-- A4 纸张 -->
+  <rect x="16" y="9" width="32" height="46" rx="3" fill="#ffffff"/>
+
+  <!-- 上半张 A5 发票 -->
+  <rect x="20.5" y="13.5" width="23" height="14" rx="1.5" fill="#2563eb"/>
+
+  <!-- 下半张 A5 发票（旋转 180° 语义，用浅色区分） -->
+  <rect x="20.5" y="36.5" width="23" height="14" rx="1.5" fill="#93c5fd"/>
+
+  <!-- 中线裁切标记：左右短实线 + 中间虚线 -->
+  <line x1="16" y1="32" x2="20" y2="32" stroke="#1e3a8a" stroke-width="1.6"/>
+  <line x1="44" y1="32" x2="48" y2="32" stroke="#1e3a8a" stroke-width="1.6"/>
+  <line x1="21" y1="32" x2="43" y2="32" stroke="#60a5fa" stroke-width="1.4" stroke-dasharray="2.5 2.5"/>
+</svg>
