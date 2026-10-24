@@ -3,8 +3,9 @@
  * pdf-worker.js 也在加载 Worker 主体前导入）。
  *
  * pdf.js v5 依赖若干较新的语言内置 API，旧版安卓 WebView、iOS 浏览器缺失时会直接抛错
- * （如 "Promise.withResolvers is not a function"、"URL.parse is not a function"），
- * 导致预览失败。这里按报错逐一补齐，主线程与 Worker 线程共用同一份补丁。
+ * （如 "Promise.withResolvers is not a function"、"URL.parse is not a function"、
+ * "r.toHex is not a function"），导致预览失败。这里按报错逐一补齐，
+ * 主线程与 Worker 线程共用同一份补丁。
  */
 
 // Promise.withResolvers：返回 { promise, resolve, reject }
@@ -119,6 +120,97 @@ if (typeof Set.prototype.intersection !== 'function') {
     for (const value of this) if (other.has(value)) return false;
     return true;
   });
+}
+
+// Math.sumPrecise（Chrome 137+ / Safari 18.4+）：补偿求和，避免大数相消丢精度
+if (typeof Math.sumPrecise !== 'function') {
+  Math.sumPrecise = function sumPrecise(values) {
+    let sum = 0;
+    let compensation = 0;
+    for (const value of values) {
+      const next = sum + value;
+      // Neumaier 补偿：把舍入误差累计到 compensation
+      compensation += Math.abs(sum) >= Math.abs(value) ? sum - next + value : value - next + sum;
+      sum = next;
+    }
+    return sum + compensation;
+  };
+}
+
+// Uint8Array.prototype.toHex / Uint8Array.fromHex（Chrome 133+ / Safari 18.4+）
+if (typeof Uint8Array.prototype.toHex !== 'function') {
+  defineMethod(Uint8Array.prototype, 'toHex', function toHex() {
+    let hex = '';
+    for (let i = 0; i < this.length; i++) hex += this[i].toString(16).padStart(2, '0');
+    return hex;
+  });
+}
+if (typeof Uint8Array.fromHex !== 'function') {
+  Uint8Array.fromHex = function fromHex(hex) {
+    if (typeof hex !== 'string' || hex.length % 2 !== 0 || /[^0-9a-fA-F]/.test(hex)) {
+      throw new SyntaxError('Invalid hex string');
+    }
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < bytes.length; i++) {
+      bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    }
+    return bytes;
+  };
+}
+
+// Uint8Array.prototype.toBase64 / Uint8Array.fromBase64（Chrome 133+ / Safari 18.4+）
+// options: { alphabet: 'base64' | 'base64url', omitPadding: boolean }
+if (typeof Uint8Array.prototype.toBase64 !== 'function') {
+  const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const BASE64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+  defineMethod(Uint8Array.prototype, 'toBase64', function toBase64(options) {
+    const alphabet = (options && options.alphabet) || 'base64';
+    const omitPadding = Boolean(options && options.omitPadding);
+    const chars = alphabet === 'base64url' ? BASE64URL : BASE64;
+    let result = '';
+    for (let i = 0; i < this.length; i += 3) {
+      const b0 = this[i];
+      const b1 = i + 1 < this.length ? this[i + 1] : undefined;
+      const b2 = i + 2 < this.length ? this[i + 2] : undefined;
+      result += chars[b0 >> 2];
+      result += chars[((b0 & 3) << 4) | ((b1 ?? 0) >> 4)];
+      result += b1 === undefined ? (omitPadding ? '' : '=') : chars[((b1 & 15) << 2) | ((b2 ?? 0) >> 6)];
+      result += b2 === undefined ? (omitPadding ? '' : '=') : chars[b2 & 63];
+    }
+    return result;
+  });
+
+  Uint8Array.fromBase64 = function fromBase64(text, options) {
+    const alphabet = (options && options.alphabet) || 'base64';
+    const normalized =
+      alphabet === 'base64url' ? String(text).replace(/-/g, '+').replace(/_/g, '/') : String(text);
+    const binary = atob(normalized);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  };
+}
+
+// ArrayBuffer.prototype.transferToFixedLength / transfer（Chrome 114+）
+// 旧浏览器无法真正分离（detach）原缓冲区：返回一份指定长度的副本，并清零原数据，
+// 语义上原缓冲区随后不应再被使用（与 transfer 一致）。
+if (typeof ArrayBuffer.prototype.transferToFixedLength !== 'function') {
+  const transferCopy = function transferToFixedLength(newLength) {
+    const length = newLength === undefined ? this.byteLength : newLength;
+    const target = new ArrayBuffer(length);
+    new Uint8Array(target).set(new Uint8Array(this, 0, Math.min(length, this.byteLength)));
+    try {
+      new Uint8Array(this).fill(0);
+    } catch {
+      /* 原缓冲区不可写时忽略 */
+    }
+    return target;
+  };
+  defineMethod(ArrayBuffer.prototype, 'transferToFixedLength', transferCopy);
+  if (typeof ArrayBuffer.prototype.transfer !== 'function') {
+    defineMethod(ArrayBuffer.prototype, 'transfer', transferCopy);
+  }
 }
 
 // structuredClone 兜底（Chrome 98+）：递归复制常见可结构化数据；

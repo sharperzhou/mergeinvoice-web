@@ -17,6 +17,13 @@ test('polyfills 在缺失时补齐 pdf.js 依赖的新 API', async () => {
   delete Set.prototype.difference;
   delete Set.prototype.isSubsetOf;
   delete globalThis.structuredClone;
+  delete Uint8Array.prototype.toHex;
+  delete Uint8Array.prototype.toBase64;
+  delete Uint8Array.fromHex;
+  delete Uint8Array.fromBase64;
+  delete Math.sumPrecise;
+  delete ArrayBuffer.prototype.transferToFixedLength;
+  delete ArrayBuffer.prototype.transfer;
 
   assert.equal(typeof Promise.withResolvers, 'undefined', '前置条件：API 已被移除');
   assert.equal(typeof URL.parse, 'undefined');
@@ -64,4 +71,26 @@ test('polyfills 在缺失时补齐 pdf.js 依赖的新 API', async () => {
   assert.equal(copy.map.get('a'), 1);
   assert.equal(copy.set.has(1), true);
   assert.equal(copy.date.getTime(), 0);
+
+  // Uint8Array 十六进制
+  assert.equal(new Uint8Array([0xde, 0xad, 0xbe, 0xef]).toHex(), 'deadbeef', 'toHex');
+  assert.deepEqual([...Uint8Array.fromHex('00ff10')], [0, 255, 16], 'fromHex');
+  assert.throws(() => Uint8Array.fromHex('abc'), SyntaxError, 'fromHex 非法输入应抛错');
+
+  // Uint8Array Base64（含补位、省略补位、base64url 字母表）
+  assert.equal(new Uint8Array([77, 97, 110]).toBase64(), 'TWFu', 'toBase64');
+  assert.equal(new Uint8Array([77, 97]).toBase64(), 'TWE=', 'toBase64 两个字节补位');
+  assert.equal(new Uint8Array([77]).toBase64({ omitPadding: true }), 'TQ', 'toBase64 省略补位');
+  assert.equal(new Uint8Array([251, 255]).toBase64({ alphabet: 'base64url' }), '-_8=', 'toBase64url');
+  assert.deepEqual([...Uint8Array.fromBase64('TWFu')], [77, 97, 110], 'fromBase64');
+  assert.deepEqual([...Uint8Array.fromBase64('-_8=', { alphabet: 'base64url' })], [251, 255], 'fromBase64url');
+
+  // Math.sumPrecise：大数相消时不丢精度
+  assert.equal(Math.sumPrecise([1e20, 1, -1e20]), 1, 'sumPrecise');
+
+  // ArrayBuffer 转移（旧浏览器无法真分离，验证副本内容与长度）
+  const buffer = new Uint8Array([1, 2, 3, 4]).buffer;
+  const moved = buffer.transferToFixedLength(2);
+  assert.equal(moved.byteLength, 2);
+  assert.deepEqual([...new Uint8Array(moved)], [1, 2], 'transferToFixedLength 截断复制');
 });
