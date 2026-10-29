@@ -59,7 +59,7 @@ test('两张 A5 合并为一页 A4：两拼、第二张旋转 180°、有裁剪�
   );
   assert.ok(
     matrices.some(
-      ([a, b, c, d, e, f]) =>
+      ([a, , , d, e, f]) =>
         Math.abs(a - 1) < 1e-9 &&
         Math.abs(d - 1) < 1e-9 &&
         Math.abs(e - 595.28) < 1e-6 &&

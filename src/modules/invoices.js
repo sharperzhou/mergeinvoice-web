@@ -183,7 +183,7 @@ function effectiveBox(page) {
   }
   if (!media) return null;
 
-  let crop = null;
+  let crop;
   try {
     crop = readRect(page.node.CropBox());
   } catch {

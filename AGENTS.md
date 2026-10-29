@@ -9,11 +9,24 @@ MergeInvoice-web：**纯前端**（无后端）发票拼版工具。浏览器本
 ```powershell
 npm.cmd run dev      # 开发服务器
 npm.cmd run build    # 构建到 dist/（含 pdfjs 运行时资源复制）
-npm.cmd test         # node --test，当前 18 个测试
+npm.cmd test         # node --test
+npm.cmd run lint     # ESLint（src 业务代码按 ES2020 基线校验）
 npm.cmd run preview  # 预览构建产物
 ```
 
-**改动后的必跑验证**：`npm.cmd test`（18 pass）+ `npm.cmd run build`。项目无 lint/typecheck。
+**改动后的必跑验证**：`npm.cmd lint` + `npm.cmd test` + `npm.cmd run build`。
+
+## 代码风格与浏览器兼容基线
+
+- **语法/API 基线：ES2020**（由 `eslint.config.js` 的 `ecmaVersion` 约束业务源码）。`vite.config.js` 的 `build.target` 为 `chrome89/edge89/firefox89/safari15`——因为 pdf.js 4.2 主包使用 top-level await（Chrome 89 / Safari 15 起支持），这是实际浏览器下限，无法再低。
+  - 业务代码（`src/**` 除 `pdfjs-compat.js`）禁止使用 ES2021+ 的语法与内置 API（如 `Object.hasOwn`、`Array.at`、`findLast`、`replaceAll`、`Promise.withResolvers`、`URL.parse`、`structuredClone`、Set 集合运算等），ESLint 会报错。
+  - 需要兼容写法时优先用 ES2020 及更早的等价实现（如 `Object.prototype.hasOwnProperty.call`、`new URL() + try/catch`、手工循环等）。
+  - `test/**` 与配置文件跑在 Node 上，不受浏览器基线约束。
+- **`src/modules/pdfjs-compat.js` 是 pdf.js 4.2 的运行时 API 兼容层**，不是业务代码的 polyfill 仓库：
+  - pdf.js 4.2 内部会调用 `Promise.withResolvers`、`structuredClone`、`Array/String.prototype.at`，`build.target` 只能转译语法、无法补运行时 API，故这三块补丁不可删除（`replaceAll`/`trimEnd`/`flat`/`Promise.finally` 在既有浏览器下限内，无需补丁）。
+  - **禁止**因业务代码缺 API 而往该文件追加补丁；业务侧应改写为 ES2020 兼容写法。仅当 pdf.js 升级引入新 API 报错时才在此补齐（主线程与 Worker 共用同一份）。
+  - 测试：`test/pdfjs-compat.test.mjs` 模拟缺失后验证补齐行为。
+  - 选型说明：pdf.js 5.x 需补 ~13 个新 API；锁 **4.2.67**（CVE-2024-4367 修复起点）只需 3 个，且保留老浏览器兼容。勿升到 4.10+（又引入 `Promise.try`、`toHex/toBase64` 等）或降回 4.0.x（有 CVE）。
 
 ## 目录结构
 
@@ -28,6 +41,8 @@ npm.cmd run preview  # 预览构建产物
 | `src/modules/flatten.js` | 注解外观（印章/签名）扁平化烘焙进内容流 |
 | `src/modules/preview.js` | pdf.js 打开与渲染（`renderInto` 按实测宽高适配） |
 | `src/modules/print.js` | 打印（原生 iframe 优先，失败退图片模式） |
+| `src/modules/pdfjs-compat.js` | pdf.js 4.2 运行时 API 兼容层（勿为业务代码追加补丁，见「代码风格与浏览器兼容基线」） |
+| `eslint.config.js` | ESLint 扁平配置：`src/**` 按 ES2020 基线 + 禁 ES2021+ API |
 | `test/` | `node --test`；`helpers.mjs` 造发票/印章夹具与断言工具 |
 
 ## 业务规则（勿擅自改动）
@@ -37,14 +52,14 @@ npm.cmd run preview  # 预览构建产物
 - A4 整页：`h + 50 < 页高` 才画底部裁切线。输出顺序：A5 在前、A4 在后，均保持导入顺序。
 - 输出：`合并发票yyyyMMddHHmmss.pdf`；保存参数 `{ useObjectStreams: false }`。
 - 导入限制：单 PDF > `MAX_IMPORT_PAGES`（10）页拒绝导入（`probePageCount` 结构级快查，拒绝前不做扁平化/渲染）。
-- `vite.config.js`：`base: './'`（相对路径部署）；pdfjs 运行时资源复制必须保留 `rename: { stripBase: true }`。
+- `vite.config.js`：`base: './'`（相对路径部署）；pdfjs 运行时资源复制必须保留 `rename: { stripBase: true }`；pdf.js 4.2 只复制 `cmaps`、`standard_fonts`（无 `wasm`/`iccs` 目录，JBIG2 等走 JS 解码）。
 
 ## 关键注意事项（踩过的坑）
 
 - **pdf-lib**：`PDFObject` 没有 `.ref`；字符串经 `context.obj()` 会变 `PDFName`（不带前导斜杠）；typed `lookup` 类型不符会抛错（用 try/catch 包住）；`page.node.MediaBox()` 缺失时抛错；`PDFArray` 有 `get/insert/remove`。
 - **重排/删页**：`/Kids` 在 `/Pages` 节点上（`catalog.lookup(PDFName.of('Pages'))`），**不在**文档目录上；数组元素为页面引用，改动后 `save` 生效。`removePage`/`getPageCount` 可直接用。
 - **已保存 PDF 的内容流是 Flate 压缩的**：测试断言读页面内容须用 `decodePDFRawStream(stream).decode()`（夹具 `helpers.mjs` 已封装）；印章/签名文本在嵌入页 XObject 内，用 `readXObjectContents(page)`。
-- **pdf.js v5**：worker 用自定义入口 `src/pdf-worker.js`（先导入 `./modules/polyfills.js` 再加载 pdf.js worker，经 `?worker&url` 打包），`vite.config.js` 必须保留 `worker: { format: 'es' }`（pdf.js 固定用 `{ type: 'module' }` 创建 Worker）；旧版移动端浏览器缺少 `Promise.withResolvers`、`URL.parse`、`Promise.try`、`Set` 集合方法等新 API，新报错须在 `polyfills.js` 补齐（主线程与 Worker 共用同一份）；`render` 传 `transform`（dpr 放大）；同一 canvas 连续渲染先 abort 旧任务。
+- **pdf.js 4.2**：worker 用自定义入口 `src/pdf-worker.js`（先导入 `./modules/pdfjs-compat.js` 再加载 pdf.js worker，经 `?worker&url` 打包），`vite.config.js` 必须保留 `worker: { format: 'es' }`（pdf.js 固定用 `{ type: 'module' }` 创建 Worker）；旧版浏览器缺少的新 API 由 `pdfjs-compat.js` 补齐（主线程与 Worker 共用同一份，仅允许为 pdf.js 补、不允许为业务代码补）；`render` 传 `transform`（dpr 放大）；同一 canvas 连续渲染先 abort 旧任务。`openPdf` 只传 `cMapUrl`/`cMapPacked`/`standardFontDataUrl`（4.2 无 `wasmUrl`/`iccUrl` 选项）。
 - **注释一律用中文**（项目约定，源码与测试都要有注释）。
 - **文件编码统一 UTF-8（无 BOM）**：中文 Windows 环境默认编码为 GBK/GB2312，用系统默认编码写文件会导致中文注释/文档乱码。
   - 所有源码、测试、Markdown、HTML、JSON/配置文件必须保存为 **UTF-8 无 BOM**；新增 HTML 文件须声明 `<meta charset="UTF-8">`；

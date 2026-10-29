@@ -35,7 +35,7 @@ export async function flattenDocument(doc) {
 
   for (const page of doc.getPages()) {
     // Annots() 在缺失时抛错，捕获后跳过该页
-    let annotsArray = null;
+    let annotsArray;
     try {
       annotsArray = page.node.Annots();
     } catch {

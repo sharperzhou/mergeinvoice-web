@@ -104,6 +104,7 @@ test('页数探测与导入上限：10 页放行、11 页拒绝、损坏文件�
   );
 
   assert.equal(await probePageCount(atLimit), MAX_IMPORT_PAGES, '应探测出准确页数');
+  assert.equal(await probePageCount(overLimit), MAX_IMPORT_PAGES + 1, '超限文件仍可探测出真实页数');
   assert.equal(exceedsPageLimit(MAX_IMPORT_PAGES), false, '恰好等于上限应允许导入');
   assert.equal(exceedsPageLimit(MAX_IMPORT_PAGES + 1), true, '超出上限一页应拒绝');
   assert.equal(exceedsPageLimit(null), false, '探测失败不按超限处理（交由错误展示流程）');

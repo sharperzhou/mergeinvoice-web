@@ -1,4 +1,4 @@
-import { openPdf, renderInto } from './preview.js';
+import { openPdf } from './preview.js';
 
 const PRINT_DPI = 200; // 图片打印回退模式的渲染分辨率
 const FALLBACK_TIMEOUT_MS = 6000; // 原生打印等待超时，超时后回退图片打印

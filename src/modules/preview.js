@@ -1,13 +1,13 @@
-// 兼容补丁必须先于 pdf.js 执行（旧版移动端浏览器缺少 Promise.withResolvers 等 API）
-import './polyfills.js';
+// pdf.js 兼容层必须先于 pdf.js 执行（旧版浏览器缺少 Promise.withResolvers 等 API）
+import './pdfjs-compat.js';
 import * as pdfjsLib from 'pdfjs-dist';
 // 自定义 Worker 入口（内部先注入补丁再加载 pdf.js worker），以 ES module 形式打包后取 URL
 import workerUrl from '../pdf-worker.js?worker&url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
-// pdf.js 运行时资源前缀：vite-plugin-static-copy 把 cmaps 等复制到 <base>/pdfjs/ 下。
-// useWorkerFetch 开启时 worker 用 fetch(相对路径) 拉 cMap/wasm，相对路径会按 worker
+// pdf.js 运行时资源前缀：vite-plugin-static-copy 把 cmaps/standard_fonts 复制到 <base>/pdfjs/ 下。
+// useWorkerFetch 开启时 worker 用 fetch(相对路径) 拉 cMap/字体，相对路径会按 worker
 // 脚本所在目录解析（如 /assets/）导致 404 → 中文 CID 字体映射失败、预览丢字。
 // 因此在主线程先拼成绝对 URL 再传给 pdf.js。
 const assetBase = new URL(`${import.meta.env.BASE_URL}pdfjs/`, document.baseURI).href;
@@ -25,9 +25,7 @@ export function openPdf(bytes) {
     data: bytes.slice(0),
     cMapUrl: `${assetBase}cmaps/`, // 中文 CID 字体映射表
     cMapPacked: true,
-    standardFontDataUrl: `${assetBase}standard_fonts/`, // 14 种标准字体
-    wasmUrl: `${assetBase}wasm/`, // 部分解码器（如 JBIG2）需要
-    iccUrl: `${assetBase}iccs/` // ICC 色彩配置
+    standardFontDataUrl: `${assetBase}standard_fonts/` // 14 种标准字体
   }).promise;
 }
 
