@@ -6,8 +6,11 @@ import workerUrl from '../pdf-worker.js?worker&url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
-// pdf.js 运行时资源前缀：vite-plugin-static-copy 把 cmaps 等复制到 <base>/pdfjs/ 下
-const assetBase = `${import.meta.env.BASE_URL}pdfjs/`;
+// pdf.js 运行时资源前缀：vite-plugin-static-copy 把 cmaps 等复制到 <base>/pdfjs/ 下。
+// useWorkerFetch 开启时 worker 用 fetch(相对路径) 拉 cMap/wasm，相对路径会按 worker
+// 脚本所在目录解析（如 /assets/）导致 404 → 中文 CID 字体映射失败、预览丢字。
+// 因此在主线程先拼成绝对 URL 再传给 pdf.js。
+const assetBase = new URL(`${import.meta.env.BASE_URL}pdfjs/`, document.baseURI).href;
 
 // 每个 canvas 上正在执行的渲染任务，用于快速翻页时先 abort 旧任务再启动新任务
 const renderTasks = new WeakMap();

@@ -90,6 +90,7 @@ export async function createInvoiceRecord({ name, size, bytes }) {
     hash: await sha256Hex(bytes),
     doc: null,
     pdfDoc: null, // pdf.js 文档句柄（懒加载，预览时创建）
+    previewBytes: null, // flatten 后的字节（有烘焙时生成），预览与合并看到同一内容
     pages: [],
     excluded: new Set(), // 用户删除的页码集合（1 起），合并/统计时跳过，可恢复
     flattened: 0, // 烘焙的印章/签名外观数量
@@ -107,6 +108,15 @@ export async function createInvoiceRecord({ name, size, bytes }) {
       throwOnInvalidObject: false
     });
     record.flattened = await flattenDocument(record.doc);
+    // 有烘焙时另存一份字节供 pdf.js 预览：注解外观已并入内容流，
+    // 避免 pdf.js 对个别注解类型渲染不全导致「预览丢内容、合并却正常」
+    if (record.flattened > 0) {
+      try {
+        record.previewBytes = await record.doc.save({ useObjectStreams: false });
+      } catch {
+        record.previewBytes = null; // 保存失败退回原始字节预览
+      }
+    }
     record.doc.getPages().forEach((page, index) => {
       record.pages.push(classifyPage(page, index));
     });

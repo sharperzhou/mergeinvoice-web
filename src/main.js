@@ -542,7 +542,8 @@ function renderRecordCard(record) {
 /** 确保已打开 pdf.js 句柄（预览与页管理共用，懒加载 + 失败可重试）。 */
 async function ensureRecordPdf(record) {
   if (record.pdfDoc) return record.pdfDoc;
-  record.pdfDoc = await openPdf(record.bytes);
+  // 有 flatten 导出的字节时用之，使预览与合并结果一致（注解外观已并入内容流）
+  record.pdfDoc = await openPdf(record.previewBytes ?? record.bytes);
   return record.pdfDoc;
 }
 

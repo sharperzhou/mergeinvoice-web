@@ -73,6 +73,27 @@ test('无注解文档：flattened 为 0，内容不变', async () => {
   assert.doesNotMatch(content, /Sig\d+_F1/);
 });
 
+test('有烘焙时生成 previewBytes，且已含外观内容', async () => {
+  const bytes = await makeInvoicePdf([{ size: A5_LANDSCAPE, label: 'PV', stamps: [{}] }]);
+  const record = await loadInvoiceFile(new Blob([bytes]));
+  assert.equal(record.flattened, 1);
+  assert.ok(record.previewBytes instanceof Uint8Array, '有烘焙时应生成预览字节');
+  assert.ok(record.previewBytes.length > 0);
+
+  // previewBytes 可被 pdf-lib 重新打开，内容含烘焙后的印章文本
+  const { PDFDocument } = await import('pdf-lib');
+  const previewDoc = await PDFDocument.load(record.previewBytes, { throwOnInvalidObject: false });
+  const content = readPageContent(previewDoc.getPage(0));
+  assert.match(content, /\bSEAL\b/, '预览字节应包含烘焙后的外观内容');
+});
+
+test('无烘焙时不生成 previewBytes（退回原始字节预览）', async () => {
+  const bytes = await makeInvoicePdf([{ size: A5_LANDSCAPE, label: 'NOPV' }]);
+  const record = await loadInvoiceFile(new Blob([bytes]));
+  assert.equal(record.flattened, 0);
+  assert.equal(record.previewBytes, null);
+});
+
 test('缺少 BBox 的外观注解保留不烘焙', async () => {
   // 制造一个 BBox 缺失的外观流：烘焙应放弃（返回 null），注解保留在 /Annots
   const bytes = await makeInvoicePdf([{ size: A5_LANDSCAPE, label: 'NOBBOX', stamps: [{}] }]);
