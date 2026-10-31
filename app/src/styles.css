@@ -897,6 +897,314 @@ body.modal-open {
   max-width: 100%;
 }
 
+/* —— 邮箱导入对话框（#mail-modal） —— */
+.mail-panel {
+  width: min(880px, 100%);
+}
+
+.mail-body {
+  display: block; /* 覆盖 .modal-body 的水平居中 flex：邮箱表单整宽纵向排布 */
+}
+
+.mail-form {
+  background: #fff;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.mail-row {
+  display: flex;
+  flex-wrap: wrap;
+  /* 底部对齐：个别说明文字换行时，输入框仍与同行其它输入框齐平 */
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.mail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 180px;
+  min-width: 160px;
+}
+
+.mail-field-grow {
+  flex: 2 1 240px;
+}
+
+.mail-label {
+  font-size: 12px;
+  color: var(--c-muted);
+}
+
+.mail-input {
+  appearance: none;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13.5px;
+  background: #fff;
+  color: var(--c-text);
+}
+
+.mail-input:focus {
+  outline: 2px solid #bfdbfe;
+  border-color: var(--c-primary);
+}
+
+/* 授权码输入框：右侧内嵌「修改 / 清除」图标；有已存码时以掩码只读展示 */
+.mail-code-wrap {
+  position: relative;
+  display: block;
+}
+
+.mail-code-input {
+  width: 100%;
+  padding-right: 64px;
+}
+
+.mail-code-input[readonly] {
+  background: #f8fafc;
+  color: var(--c-text);
+  cursor: default;
+}
+
+.mail-code-icon {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--c-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mail-code-icon:hover {
+  background: #f1f5f9;
+  color: var(--c-primary);
+}
+
+/* 清除按钮位于修改按钮左侧 */
+.mail-code-icon + .mail-code-icon {
+  right: 34px;
+}
+
+.mail-code-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* 对话框顶部「授权码获取与设置说明」：醒目的可展开说明块 */
+.mail-help {
+  margin: 0 0 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.mail-help summary {
+  cursor: pointer;
+  user-select: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--c-primary-dark);
+}
+
+.mail-help-body {
+  margin-top: 8px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: #334155;
+}
+
+.mail-help-body p {
+  margin: 0 0 8px;
+}
+
+.mail-help-body ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.mail-help-body li {
+  margin-bottom: 4px;
+}
+
+.mail-help-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mail-help-table th,
+.mail-help-table td {
+  border: 1px solid #dbeafe;
+  padding: 5px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.mail-help-table th {
+  background: #dbeafe;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mail-advanced {
+  margin: 2px 0 10px;
+  font-size: 13px;
+  color: var(--c-muted);
+}
+
+.mail-advanced summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 高级设置用途说明：普通用户无需修改，仅在分域部署时使用 */
+.mail-advanced-note {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.mail-advanced .mail-row {
+  margin-top: 8px;
+}
+
+.mail-status {
+  margin: 12px 0 8px;
+  min-height: 1.2em;
+  font-size: 13px;
+  color: var(--c-muted);
+}
+
+.mail-status.is-error {
+  color: var(--c-danger);
+}
+
+.mail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 280px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+}
+
+.mail-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--c-border);
+  font-size: 13px;
+}
+
+.mail-item:last-child {
+  border-bottom: none;
+}
+
+.mail-item:hover {
+  background: #f8fafc;
+}
+
+.mail-subject {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mail-from {
+  flex: 0 1 200px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--c-muted);
+}
+
+.mail-date {
+  flex: 0 0 auto;
+  color: var(--c-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mail-count {
+  margin-right: auto;
+  font-size: 13px;
+  color: var(--c-muted);
+}
+
+/* 面板标题行：标题在左，右侧操作（如「从邮箱导入」）靠右对齐 */
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.panel-head h2 {
+  margin: 0;
+}
+
+/* 标题右侧的邮箱导入入口：与标题同行、整体靠右 */
+.mail-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.mail-entry-sub {
+  font-size: 12.5px;
+  color: var(--c-muted);
+  max-width: 420px;
+  text-align: right;
+}
+
+/* 保留主色底，尺寸收敛为标题行内的小号主按钮 */
+.mail-open-btn {
+  padding: 7px 16px;
+  font-size: 13.5px;
+  border-radius: 8px;
+  white-space: nowrap;
+  box-shadow: 0 1px 6px rgba(37, 99, 235, 0.35);
+}
+
+@media (max-width: 760px) {
+  /* 窄屏隐藏说明文案，按钮仍保持右对齐 */
+  .mail-entry-sub {
+    display: none;
+  }
+}
+
 .app-footer {
   text-align: center;
   color: #94a3b8;

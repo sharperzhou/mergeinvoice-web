@@ -1,0 +1,20 @@
+# Cloudflare Worker 配置：静态前端 + IMAP 中继 API 单服务部署。
+# 部署：先 `npm run build`（产出 dist/），再 `npm run deploy`（见 package.json）。
+# 本地联调：`npm run build && npm run dev:api` → http://localhost:8787
+
+# 配置内相对路径以本文件所在目录（worker/）为基准
+name = "merge-invoice-web"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# 静态资源绑定：指向 vite 构建产物（相对本文件所在目录），Worker 内用 env.ASSETS.fetch 透传
+[assets]
+directory = "../dist"
+binding = "ASSETS"
+
+# 可选环境变量（建议用 `wrangler secret put API_TOKEN` 以密钥方式设置，避免入库）：
+# - API_TOKEN：设置后所有 /api/* 请求须带 `Authorization: Bearer <token>`，防止公开部署被滥用
+# - ALLOW_ORIGIN：前后端分域部署时的 CORS 放行来源（如 "https://example.com"）
+# [vars]
+# API_TOKEN = "change-me"
+# ALLOW_ORIGIN = "https://example.com"

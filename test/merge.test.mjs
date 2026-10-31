@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PDFDocument } from 'pdf-lib';
-import { loadInvoiceFile } from '../src/modules/invoices.js';
-import { mergeInvoices, mergedFileName } from '../src/modules/merge.js';
+import { loadInvoiceFile } from '../app/src/modules/invoices.js';
+import { mergeInvoices, mergedFileName } from '../app/src/modules/merge.js';
 import {
   A4_PORTRAIT,
   A5_LANDSCAPE,

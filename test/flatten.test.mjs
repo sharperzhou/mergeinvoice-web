@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { loadInvoiceFile } from '../src/modules/invoices.js';
+import { loadInvoiceFile } from '../app/src/modules/invoices.js';
 import {
   A5_LANDSCAPE,
   makeInvoicePdf,

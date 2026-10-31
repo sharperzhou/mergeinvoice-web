@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="description" content="专业的 A5 发票双联拼版工具：两张 A5 版式发票自动合并至单张 A4（第二张旋转 180°），页缘附裁切标记，支持数字签名与电子印章外观保留，纯浏览器本地解析，文件数据不出本机。" />
+    <title>发票拼版工具 · A5 双联拼 A4 | Sharper</title>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="app-header-inner">
+        <h1>发票拼版工具</h1>
+        <p>双联拼版：将两张 A5 版式发票合并排版至单张 A4（第二张旋转 180°），页缘附裁切标记线 · 全流程浏览器本地解析，文件数据不出本机</p>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <nav class="stepper" aria-label="操作步骤">
+        <button type="button" class="step-item is-current" data-step="1" aria-current="step">
+          <span class="step-badge">1</span><span class="step-name">导入发票</span>
+        </button>
+        <span class="step-line" aria-hidden="true"></span>
+        <button type="button" class="step-item" data-step="2" disabled>
+          <span class="step-badge">2</span><span class="step-name">合并</span>
+        </button>
+        <span class="step-line" aria-hidden="true"></span>
+        <button type="button" class="step-item" data-step="3" disabled>
+          <span class="step-badge">3</span><span class="step-name">下载 / 打印</span>
+        </button>
+      </nav>
+
+      <section class="card panel" id="import-card" aria-label="第 1 步：导入发票">
+        <div class="panel-head">
+          <h2>导入发票</h2>
+          <div class="mail-entry">
+            <span class="mail-entry-sub">自动搜索 163 / 126 / yeah / QQ 邮箱中的发票邮件，勾选后批量导入附件</span>
+            <button id="mail-open-btn" class="btn btn-primary mail-open-btn" type="button">从邮箱导入</button>
+          </div>
+        </div>
+        <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-controls="file-input">
+          <p class="dz-title">点击选择或拖拽 PDF / ZIP 文件至此区域</p>
+          <p class="dz-sub">支持批量导入与重复内容检测 · ZIP 压缩包自动解出其中的 PDF（如 12306 发票包） · 单个 PDF 最多 10 页，超出将被拒绝导入 · 导入后可按页删除不要的页面 · 自动保留数字签名及电子印章的可视外观</p>
+        </div>
+        <input id="file-input" type="file" accept=".pdf,application/pdf,.zip,application/zip" multiple hidden />
+        <ul id="file-list" class="file-list"></ul>
+        <div class="panel-actions">
+          <button id="clear-btn" class="btn" type="button" disabled>清空全部</button>
+          <button id="next-btn" class="btn btn-primary" type="button" disabled>下一步：合并</button>
+        </div>
+      </section>
+
+      <section class="card panel" id="merge-card" hidden aria-label="第 2 步：合并">
+        <h2>合并</h2>
+        <div id="merge-summary" class="summary"></div>
+        <p class="hint">合并规则：A5 发票两两拼版至单张 A4（第二张旋转 180°，中线附裁切标记）；A4 整页逐张输出；输出顺序以导入列表为准，可在上一步拖拽调整。</p>
+        <div class="panel-actions">
+          <button id="back-btn-1" class="btn" type="button">上一步</button>
+          <button id="merge-btn" class="btn btn-primary" type="button" disabled>开始合并</button>
+        </div>
+      </section>
+
+      <section class="card panel" id="result-card" hidden aria-label="第 3 步：下载与打印">
+        <h2>下载与打印</h2>
+        <div class="toolbar">
+          <button id="download-btn" class="btn" type="button">下载 PDF</button>
+          <button id="print-btn" class="btn btn-primary" type="button">打印</button>
+        </div>
+        <p class="hint">浏览器未提供本地打印机枚举接口：点击「打印」后请在系统打印对话框中选择目标打印机。推荐打印参数：纸张 A4、缩放 100%（实际大小）、页边距 无。可点击页面右上角 × 删除单页，或拖拽调整页面顺序，下载与打印均按当前预览顺序输出。</p>
+        <div id="result-pages" class="page-grid"></div>
+        <div class="panel-actions">
+          <button id="back-btn-2" class="btn" type="button">上一步</button>
+        </div>
+      </section>
+
+      <p id="status" class="status-bar" role="status" aria-live="polite">请导入待拼版的发票文件</p>
+    </main>
+
+    <div id="modal" class="modal" hidden>
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-head">
+          <span id="modal-title" class="modal-title"></span>
+          <button id="modal-close" class="modal-close" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="modal-body"><canvas id="modal-canvas"></canvas></div>
+      </div>
+    </div>
+
+    <div id="mail-modal" class="modal" hidden>
+      <div class="modal-panel mail-panel" role="dialog" aria-modal="true" aria-labelledby="mail-modal-title">
+        <div class="modal-head">
+          <span id="mail-modal-title" class="modal-title">从邮箱导入发票</span>
+          <button id="mail-modal-close" class="modal-close" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="modal-body mail-body">
+          <details class="mail-help" id="mail-help">
+            <summary title="点击查看授权码获取步骤与常见问题">授权码获取与设置说明（先看这里）</summary>
+            <div class="mail-help-body">
+              <p>
+                <strong>客户端授权码不是登录密码</strong>：需先在邮箱网页版开启 IMAP 服务，按提示短信验证后获得一串授权码，填入下方即可。
+              </p>
+              <table class="mail-help-table">
+                <thead>
+                  <tr><th>邮箱</th><th>开通路径</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>163</td><td>设置 → POP3/SMTP/IMAP → 开启「IMAP/SMTP 服务」（短信验证后获得授权码）</td></tr>
+                  <tr><td>126 / yeah</td><td>与 163 相同（网易系流程）</td></tr>
+                  <tr><td>QQ 邮箱</td><td>设置 → 账户 → POP3/IMAP/SMTP/Exchange/CardDAV/CalDAV 服务 → 开启 IMAP/SMTP（短信验证生成授权码）</td></tr>
+                </tbody>
+              </table>
+              <ul>
+                <li>IMAP 服务必须为<strong>开启</strong>状态，否则授权码正确也会登录失败；授权码可随时吊销并重新生成。</li>
+                <li>授权码仅保存在本机浏览器（60 天有效，成功使用自动顺延）；保存后输入框以掩码显示，点框内笔形图标可修改，× 可清除。</li>
+                <li>常见提示：「未检测到后端服务」= 站点未部署邮箱后端；「授权码错误」= 码不完整或 IMAP 未开启；「Unsafe Login」= 按提示在网页版邮箱放行。</li>
+                <li>完整说明（含后端部署与 FAQ）：<a href="docs/mail-import.md" target="_blank" rel="noopener">查看完整文档</a></li>
+              </ul>
+            </div>
+          </details>
+          <form id="mail-form" class="mail-form" novalidate>
+            <div class="mail-row">
+              <label class="mail-field">
+                <span class="mail-label">服务商</span>
+                <select id="mail-provider" class="mail-input"></select>
+              </label>
+              <label class="mail-field mail-field-grow">
+                <span class="mail-label">邮箱账号</span>
+                <input id="mail-email" class="mail-input" type="email" autocomplete="username" placeholder="you@163.com" />
+              </label>
+              <label class="mail-field mail-field-grow">
+                <span class="mail-label">客户端授权码（非登录密码，非邮箱密码）</span>
+                <span class="mail-code-wrap">
+                  <input id="mail-code" class="mail-input mail-code-input" type="password" autocomplete="new-password" placeholder="在邮箱设置中开启 IMAP 后获取（点上方「设置说明」）" title="邮箱网页版设置中开启 IMAP 时生成的授权码，不是登录密码" />
+                  <button id="mail-code-edit" class="mail-code-icon" type="button" title="修改授权码" aria-label="修改授权码" hidden>
+                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.6 1.7a1.4 1.4 0 0 1 2 0l.7.7a1.4 1.4 0 0 1 0 2L5.9 12.8l-3 .7.7-3z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                  </button>
+                  <button id="mail-code-clear" class="mail-code-icon" type="button" title="清除已保存的授权码" aria-label="清除已保存的授权码" hidden>×</button>
+                </span>
+              </label>
+            </div>
+            <div class="mail-row">
+              <label class="mail-field">
+                <span class="mail-label">起始日期（默认近 30 天）</span>
+                <input id="mail-start" class="mail-input" type="date" />
+              </label>
+              <label class="mail-field">
+                <span class="mail-label">结束日期（含当日，最长跨度 90 天）</span>
+                <input id="mail-end" class="mail-input" type="date" />
+              </label>
+              <label class="mail-field mail-field-grow">
+                <span class="mail-label" title="可选：逗号分隔，匹配主题 / 发件人 / 附件文件名；英文引号内为短语（如 &quot;电子 发票&quot;）">关键词（可选，引号内为短语）</span>
+                <input id="mail-keywords" class="mail-input" type="text" placeholder="留空显示全部；如：滴滴,华住,发票" />
+              </label>
+            </div>
+            <details class="mail-advanced">
+              <summary>高级设置（普通用户无需修改，保持默认即可）</summary>
+              <p class="mail-advanced-note">
+                默认情况下，本页与邮箱后端在同一站点，直接点「搜索邮件」即可，下面两项都不用动。只有当前端与后端<strong>分开部署</strong>时：
+                「API 地址」填后端完整地址（如 <code>https://xxx.workers.dev/api</code>）；「访问令牌」填后端管理员设置的
+                API_TOKEN（后端未启用则留空）。
+              </p>
+              <div class="mail-row">
+                <label class="mail-field mail-field-grow">
+                  <span class="mail-label">邮箱后端 API 地址（默认同源 /api）</span>
+                  <input id="mail-api" class="mail-input" type="text" placeholder="/api 或 https://xxx.workers.dev/api" />
+                </label>
+                <label class="mail-field mail-field-grow">
+                  <span class="mail-label">访问令牌（仅后端启用 API_TOKEN 时填写，否则留空）</span>
+                  <input id="mail-token" class="mail-input" type="password" autocomplete="off" placeholder="后端未启用则留空" />
+                </label>
+              </div>
+            </details>
+            <div class="panel-actions">
+              <button id="mail-search-btn" class="btn btn-primary" type="submit">搜索邮件</button>
+            </div>
+          </form>
+          <p id="mail-status" class="mail-status" role="status" aria-live="polite"></p>
+          <ul id="mail-list" class="mail-list" hidden></ul>
+          <div id="mail-import-actions" class="panel-actions" hidden>
+            <span id="mail-count" class="mail-count"></span>
+            <button id="mail-select-all" class="btn" type="button">全选</button>
+            <button id="mail-select-none" class="btn" type="button">全不选</button>
+            <button id="mail-import-btn" class="btn btn-primary" type="button">导入所选</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="print-root" aria-hidden="true"></div>
+
+    <footer class="app-footer">
+      © <span id="copyright-year">2026</span> Sharper 版权所有 · All Rights Reserved
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

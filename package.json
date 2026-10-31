@@ -1,17 +1,21 @@
 {
   "name": "merge-invoice-web",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "description": "纯前端 PDF 发票合并工具：两张 A5 合并为一张 A4 并打印",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check": "npm run lint && npm test && npm run build",
+    "dev:api": "wrangler dev -c worker/wrangler.toml",
+    "deploy": "vite build && wrangler deploy -c worker/wrangler.toml"
   },
   "dependencies": {
+    "fflate": "^0.8.3",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "~4.2.67"
   },
@@ -20,6 +24,7 @@
     "eslint": "^10.13.0",
     "globals": "^17.13.0",
     "vite": "^8.3.5",
-    "vite-plugin-static-copy": "^4.1.1"
+    "vite-plugin-static-copy": "^4.1.1",
+    "wrangler": "^4.156.0"
   }
 }

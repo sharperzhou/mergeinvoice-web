@@ -65,25 +65,29 @@ npm test           # 单元测试（node --test，18 个用例）
 
 ```
 MergeInvoice-web/
-├── index.html              # 向导式三步骤界面（导入 → 合并 → 下载/打印）
-├── public/favicon.svg      # 站点图标
-├── vite.config.js          # base './' 相对路径部署 + pdf.js 运行时资源复制
-├── src/
-│   ├── main.js             # 全部 UI 状态与交互（导入/页管理/排序/结果编辑/打印）
-│   ├── styles.css          # 自适应布局（宽屏至 1600px，窄屏可用）
-│   └── modules/
-│       ├── invoices.js     # 记录创建、页面分类、去重哈希、10 页导入上限
-│       ├── merge.js        # 拼版规则（A5 两拼 / A4 整页 / 裁切标记）
-│       ├── flatten.js      # 注解外观扁平化（印章/签名烘焙进内容流）
-│       ├── preview.js      # pdf.js 渲染（自适应宽高、DPR、任务中止）
-│       └── print.js        # 系统打印（原生优先，图片模式降级）
+├── app/                    # 前端（vite root）
+│   ├── index.html          # 向导式三步骤界面（导入 → 合并 → 下载/打印）
+│   ├── public/favicon.svg  # 站点图标
+│   └── src/
+│       ├── main.js         # 全部 UI 状态与交互（导入/页管理/排序/结果编辑/打印）
+│       ├── styles.css      # 自适应布局（宽屏至 1600px，窄屏可用）
+│       └── modules/
+│           ├── invoices.js # 记录创建、页面分类、去重哈希、10 页导入上限
+│           ├── merge.js    # 拼版规则（A5 两拼 / A4 整页 / 裁切标记）
+│           ├── flatten.js  # 注解外观扁平化（印章/签名烘焙进内容流）
+│           ├── preview.js  # pdf.js 渲染（自适应宽高、DPR、任务中止）
+│           └── print.js    # 系统打印（原生优先，图片模式降级）
+├── worker/                 # 可选：Cloudflare Worker（IMAP 中继 API，与静态前端同域部署）
+│   ├── wrangler.toml
+│   └── src/
+├── vite.config.js          # root 'app'、base './' 相对路径部署 + pdf.js 运行时资源复制
 └── test/                   # node --test 单元测试与发票/印章夹具
 ```
 
 | 组件 | 选型 | 用途 |
 | --- | --- | --- |
 | [pdf-lib](https://pdf-lib.js.org/) | ^1.17.1 | PDF 解析、注解扁平化、拼版合成、删页/重排 |
-| [pdf.js](https://mozilla.github.io/pdf.js/) | ^5.7.284 | 页面渲染预览与打印图片降级 |
+| [pdf.js](https://mozilla.github.io/pdf.js/) | ~4.2.67 | 页面渲染预览与打印图片降级（锁 4.2.67：CVE-2024-4367 修复起点，见 AGENTS.md） |
 | [Vite](https://vite.dev/) | ^8.3.5 | 开发服务器与生产构建 |
 
 ## 打印建议
@@ -94,9 +98,22 @@ MergeInvoice-web/
 - 缩放：**100% / 实际大小**
 - 页边距：**无**
 
-## 部署
+## 测试与部署
 
-`npm run build` 产物为纯静态文件（`dist/`，含 pdf.js 运行时资源），已配置相对路径（`base: './'`），可直接部署至任意静态托管（Nginx、对象存储、GitHub Pages、内网文件服务器等），无需任何后端服务。
+**一键测试**：`npm run check`（= `lint` + `test` + `build`，任一环节失败即中止）。
+
+**本地联调**：`npm run dev` 同时启动 Vite（`http://localhost:5173`，前端热更新）与 wrangler dev（Worker，代码变更自动重载），`/api` 由 Vite 代理到 Worker，邮箱导入可直接测试；首次运行若缺 `dist/` 会自动构建一次。仅想跑前端可执行 `npx vite`。
+
+**一键部署**：`npm run deploy`（= `vite build` + `wrangler deploy`，首次需 `npx wrangler login` 授权）。
+
+**自动部署（推送即更新）**：在 Cloudflare 控制台把 Worker 连接到 GitHub 仓库（Workers & Pages → 选择已有 Worker 的 Settings → Builds → Connect，或新建应用时直接导入仓库），选择 `main` 分支，之后每次推送 Cloudflare 自动构建并部署：
+
+- 构建命令（Build command）：`npm run check`（lint + test + build，失败则不部署）
+- 部署命令（Deploy command）：`npx wrangler deploy -c worker/wrangler.toml`
+
+无需在 GitHub 配置任何 Secret（Cloudflare 会自动生成部署令牌）；构建记录见 Worker 的 Deployments → View build history。
+
+说明：旧的 Cloudflare Pages 项目（纯静态时代）建议在仪表盘停用或删除，避免旧入口继续自动构建旧版且不含邮箱 API。构建产物 `dist/` 仍为纯静态（相对路径部署），单独拷贝到任意静态托管也能用，但「从邮箱导入」需要 Worker 同域或分域配置（见 `docs/mail-import.md`）。
 
 ## 浏览器支持与已知限制
 
@@ -107,7 +124,7 @@ MergeInvoice-web/
 
 ## 隐私声明
 
-所有解析、拼版、预览、打印均在浏览器本地完成，无后端接口，文件内容不会上传至任何服务器。
+所有解析、拼版、预览、打印均在浏览器本地完成，本地 PDF 文件内容不会上传至任何服务器。可选的「从邮箱导入」仅在用户主动发起时经自建 Cloudflare Worker 中继 IMAP 字节流，Worker 零存储（不用 KV/D1、不落盘、不打印凭据），详见 `docs/mail-import.md`。
 
 ---
 

@@ -13,7 +13,7 @@ test('pdfjs-compat 在缺失时补齐 pdf.js 依赖的新 API', async () => {
   assert.equal(typeof Array.prototype.at, 'undefined');
   assert.equal(typeof globalThis.structuredClone, 'undefined');
 
-  await import('../src/modules/pdfjs-compat.js');
+  await import('../app/src/modules/pdfjs-compat.js');
 
   // Promise.withResolvers
   assert.equal(typeof Promise.withResolvers, 'function');

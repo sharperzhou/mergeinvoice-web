@@ -7,7 +7,7 @@ import {
   MAX_IMPORT_PAGES,
   probePageCount,
   sha256Hex
-} from '../src/modules/invoices.js';
+} from '../app/src/modules/invoices.js';
 import { A4_PORTRAIT, A5_LANDSCAPE, makeInvoicePdf, resourceKeys } from './helpers.mjs';
 
 // 页面分类规则：
