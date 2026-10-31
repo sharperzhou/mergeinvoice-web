@@ -80,6 +80,18 @@ export default [
     },
     rules: es2020Rules
   },
+  // Pages Functions（同为 Workers 运行时）：与 worker/** 同一基线
+  {
+    files: ['functions/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      sourceType: 'module',
+      globals: {
+        ...globals.worker
+      }
+    },
+    rules: es2020Rules
+  },
   // pdf.js 兼容层：允许使用 ES2021+ API（其职责就是补齐这些 API）
   {
     files: ['app/src/modules/pdfjs-compat.js'],

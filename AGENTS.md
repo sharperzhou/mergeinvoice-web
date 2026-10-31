@@ -55,6 +55,7 @@ npm.cmd run deploy     # vite build && wrangler deploy：部署前端 + API 到 
 | `app/src/modules/preview.js` | pdf.js 打开与渲染（`renderInto` 按实测宽高适配） |
 | `app/src/modules/print.js` | 打印（原生 iframe 优先，失败退图片模式） |
 | `app/src/modules/pdfjs-compat.js` | pdf.js 4.2 运行时 API 兼容层（勿为业务代码追加补丁，见「代码风格与浏览器兼容基线」） |
+| `functions/api/[[path]].js` | Pages Functions 同域代理：`/api/*` 经 Service Binding `API` 内部转发给 Worker（避开 workers.dev 被污染的网络） |
 | `worker/wrangler.toml` | Worker 配置：`main`、`[assets]` 指向 `../dist`、可选 vars（API_TOKEN/ALLOW_ORIGIN）说明 |
 | `worker/src/index.js` | Worker 入口：静态资源透传 + `/api/mail/search`、`/api/mail/raw` 路由、校验、错误映射、`cloudflare:sockets` 连接 |
 | `worker/src/imap.js` | 手写最小 IMAP4rev1 客户端（LOGIN/ID/SELECT/SEARCH/UID FETCH 邮件头 + BODYSTRUCTURE/正文/LOGOUT；流抽象 `{readable,writable}` 入参，`connect()` 仅在 index.js） |
@@ -93,7 +94,7 @@ npm.cmd run deploy     # vite build && wrangler deploy：部署前端 + API 到 
 
 分支 `main`；`.gitignore` 忽略 `node_modules/`、`dist/`、`.wrangler/`，不提交依赖与构建产物。**未经用户明确要求不要 commit/push**。
 
-自动部署为**分域**方案：前端走 Cloudflare Pages（`mergeinvoice.pages.dev`，构建命令 `npm run check`、输出 `dist`），后端走 Cloudflare Workers Builds（Worker `merge-invoice-web` 连同一仓库 `main`，构建命令 `npm run check`、部署命令 `npx wrangler deploy -c worker/wrangler.toml`）；跨域由 `worker/wrangler.toml` 的 `ALLOW_ORIGIN` 放行，前端默认 API 地址由 Pages 构建变量 `VITE_API_BASE` 注入。手动部署仍可 `npm.cmd run deploy`（本地凭 `npx wrangler login`）。
+自动部署为**分域**方案：前端走 Cloudflare Pages（`mergeinvoice.pages.dev`，构建命令 `npm run check`、输出 `dist`），API 通过 Pages Functions（`functions/api/[[path]].js`）用 Service Binding `API` 内部转发给 Worker，前端始终同源 `/api`（避免 `*.workers.dev` 被 DNS 污染的网络无法访问）；Worker 走 Cloudflare Workers Builds（Worker `merge-invoice-web` 连同一仓库 `main`，构建命令 `npm run check`、部署命令 `npx wrangler deploy -c worker/wrangler.toml`）。给 Worker 绑自定义域名时可改用构建变量 `VITE_API_BASE` 直连（`ALLOW_ORIGIN` 已放行 pages.dev）。手动部署仍可 `npm.cmd run deploy`（本地凭 `npx wrangler login`）。
 
 ### 提交消息规范（Conventional Commits，摘要用中文）
 

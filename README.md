@@ -106,11 +106,11 @@ MergeInvoice-web/
 
 **一键部署**：`npm run deploy`（= `vite build` + `wrangler deploy`，首次需 `npx wrangler login` 授权）。
 
-## 部署（当前方案：前端 Pages + 后端 Worker）
+## 部署（当前方案：Pages 前端 + Functions 同域代理 + Worker API）
 
-前端与邮箱 API 分开部署，前端保留 `mergeinvoice.pages.dev` 免费域名。
+前端保留 `mergeinvoice.pages.dev` 免费域名；`*.workers.dev` 在部分网络（如国内）会被 DNS 污染无法访问，因此 **API 不直连 Worker**，而是由 Pages Functions 通过 Service Binding 内部转发，前端始终同源访问 `/api`。
 
-**前端（Cloudflare Pages，已有项目）**：仓库连接保持不动，构建设置：
+**前端（Cloudflare Pages）**：仓库连接保持不动，构建设置：
 
 | 设置项 | 值 |
 | --- | --- |
@@ -118,20 +118,20 @@ MergeInvoice-web/
 | Build output directory | `dist` |
 | Root directory | 留空 |
 
-并在 Pages 的 **Settings → Environment variables** 添加 `VITE_API_BASE = https://<worker域名>/api`，构建时写入前端默认 API 地址（用户无需手动配置）。
+再添加 **Settings → Functions → Service bindings**：变量名 `API` → 目标服务选你的 Worker（如 `merge-invoice-web`）。
+`functions/api/[[path]].js` 会把 `/api/*` 转发给它；未配置绑定时接口会返回明确的 500 提示。
+**不要**再设置 `VITE_API_BASE`（同源 `/api` 即可，若之前设过请删除）。
 
-**后端（Cloudflare Worker `merge-invoice-web`）**：连到同一仓库的 `main` 分支（Worker 的 Settings → Builds → Connect），构建设置：
+**后端（Cloudflare Worker）**：连到同一仓库的 `main` 分支（Worker 的 Settings → Builds → Connect）：
 
 | 设置项 | 值 |
 | --- | --- |
 | Build command | `npm run check`（不能留空，否则 `dist/` 不存在导致部署失败） |
 | Deploy command | `npx wrangler deploy -c worker/wrangler.toml` |
 
-`worker/wrangler.toml` 已配置 `ALLOW_ORIGIN = "https://mergeinvoice.pages.dev"` 放行跨域。部署后到 Worker 的 **Settings → Domains & Routes** 启用 `workers.dev` 子域，得到 `https://merge-invoice-web.<子域>.workers.dev`，把它（加 `/api`）填进上面的 `VITE_API_BASE`。
+或本地手动部署：`npm run deploy`（先 `npx wrangler login`）。Worker 是否启用 workers.dev 子域不影响本方案（走 Service Binding，不经过公网域名）。
 
-手动部署：`npm run deploy`（本地先 `npx wrangler login`）。构建记录见各项目的 Deployments。
-
-说明：构建产物 `dist/` 为纯静态（相对路径部署），单独拷贝到任意静态托管也能用，但「从邮箱导入」需要 Worker 提供 `/api`（本方案通过 `VITE_API_BASE` + `ALLOW_ORIGIN` 对接）。
+说明：构建产物 `dist/` 为纯静态（相对路径部署），单独拷贝到任意静态托管也能用，但「从邮箱导入」需要 Worker 提供 `/api`（本方案经 Pages Functions 代理；若给 Worker 绑了自定义域名，也可改用 `VITE_API_BASE` 直连并保留 `ALLOW_ORIGIN`）。
 
 ## 浏览器支持与已知限制
 
