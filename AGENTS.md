@@ -93,7 +93,7 @@ npm.cmd run deploy     # vite build && wrangler deploy：部署前端 + API 到 
 
 分支 `main`；`.gitignore` 忽略 `node_modules/`、`dist/`、`.wrangler/`，不提交依赖与构建产物。**未经用户明确要求不要 commit/push**。
 
-自动部署走 Cloudflare **Workers Builds**（控制台侧的 Git 集成，配置不落在仓库）：把 Worker 连接 GitHub 仓库的 `main` 分支，推送即构建部署——构建命令 `npm run check`、部署命令 `npx wrangler deploy -c worker/wrangler.toml`，无需仓库 Secrets；手动部署仍可 `npm.cmd run deploy`（本地凭 `npx wrangler login`）。
+自动部署为**分域**方案：前端走 Cloudflare Pages（`mergeinvoice.pages.dev`，构建命令 `npm run check`、输出 `dist`），后端走 Cloudflare Workers Builds（Worker `merge-invoice-web` 连同一仓库 `main`，构建命令 `npm run check`、部署命令 `npx wrangler deploy -c worker/wrangler.toml`）；跨域由 `worker/wrangler.toml` 的 `ALLOW_ORIGIN` 放行，前端默认 API 地址由 Pages 构建变量 `VITE_API_BASE` 注入。手动部署仍可 `npm.cmd run deploy`（本地凭 `npx wrangler login`）。
 
 ### 提交消息规范（Conventional Commits，摘要用中文）
 

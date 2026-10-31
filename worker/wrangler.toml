@@ -12,9 +12,12 @@ compatibility_date = "2026-10-01"
 directory = "../dist"
 binding = "ASSETS"
 
+[vars]
+# 前后端分域部署（前端在 mergeinvoice.pages.dev，API 在本 Worker）时放行跨域来源；
+# 同源部署（直接访问 Worker 的 workers.dev 地址）时该头多余但无害。
+ALLOW_ORIGIN = "https://mergeinvoice.pages.dev"
+
 # 可选环境变量（建议用 `wrangler secret put API_TOKEN` 以密钥方式设置，避免入库）：
 # - API_TOKEN：设置后所有 /api/* 请求须带 `Authorization: Bearer <token>`，防止公开部署被滥用
-# - ALLOW_ORIGIN：前后端分域部署时的 CORS 放行来源（如 "https://example.com"）
-# [vars]
+# [vars] 里也可填写 API_TOKEN，但会以明文入库，故默认注释
 # API_TOKEN = "change-me"
-# ALLOW_ORIGIN = "https://example.com"

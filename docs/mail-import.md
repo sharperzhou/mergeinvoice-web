@@ -36,7 +36,9 @@
 3. 构建并部署：`npm.cmd run deploy`（等价于 `vite build && wrangler deploy`）
 4. 部署完成后得到 `https://<项目名>.<账号>.workers.dev`，打开即可使用。
 
-自动化：在 Cloudflare 控制台把 Worker 连接到 GitHub 仓库（该 Worker 的 Settings → Builds → Connect），推送 `main` 即自动构建部署；构建命令填 `npm run check`，部署命令填 `npx wrangler deploy -c worker/wrangler.toml`，无需在 GitHub 配置 Secret。
+自动化：在 Cloudflare 控制台把 Worker 连接到 GitHub 仓库（该 Worker 的 Settings → Builds → Connect），推送 `main` 即自动构建部署。构建命令填 `npm run check`（**不能留空**，否则不会生成 `dist/`，部署会报 assets 目录不存在），部署命令填 `npx wrangler deploy -c worker/wrangler.toml`；无需在 GitHub 配置 Secret。
+
+分域部署（前端 Pages + 本 Worker）：`worker/wrangler.toml` 已设置 `ALLOW_ORIGIN = "https://mergeinvoice.pages.dev"` 放行跨域；前端在 Pages 的构建变量里设置 `VITE_API_BASE = https://<worker域名>/api`，构建产物会把它作为默认 API 地址，用户无需手动填写。
 
 本地联调：直接 `npm.cmd run dev`（同时启动前端热更新与 Worker，`/api` 已代理）；或先 `npm.cmd run build` 再 `npm.cmd run dev:api`，访问 `http://localhost:8787`（产物模式，同时提供前端与 API）。
 

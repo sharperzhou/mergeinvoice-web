@@ -106,14 +106,32 @@ MergeInvoice-web/
 
 **一键部署**：`npm run deploy`（= `vite build` + `wrangler deploy`，首次需 `npx wrangler login` 授权）。
 
-**自动部署（推送即更新）**：在 Cloudflare 控制台把 Worker 连接到 GitHub 仓库（Workers & Pages → 选择已有 Worker 的 Settings → Builds → Connect，或新建应用时直接导入仓库），选择 `main` 分支，之后每次推送 Cloudflare 自动构建并部署：
+## 部署（当前方案：前端 Pages + 后端 Worker）
 
-- 构建命令（Build command）：`npm run check`（lint + test + build，失败则不部署）
-- 部署命令（Deploy command）：`npx wrangler deploy -c worker/wrangler.toml`
+前端与邮箱 API 分开部署，前端保留 `mergeinvoice.pages.dev` 免费域名。
 
-无需在 GitHub 配置任何 Secret（Cloudflare 会自动生成部署令牌）；构建记录见 Worker 的 Deployments → View build history。
+**前端（Cloudflare Pages，已有项目）**：仓库连接保持不动，构建设置：
 
-说明：旧的 Cloudflare Pages 项目（纯静态时代）建议在仪表盘停用或删除，避免旧入口继续自动构建旧版且不含邮箱 API。构建产物 `dist/` 仍为纯静态（相对路径部署），单独拷贝到任意静态托管也能用，但「从邮箱导入」需要 Worker 同域或分域配置（见 `docs/mail-import.md`）。
+| 设置项 | 值 |
+| --- | --- |
+| Build command | `npm run check`（lint + test + build） |
+| Build output directory | `dist` |
+| Root directory | 留空 |
+
+并在 Pages 的 **Settings → Environment variables** 添加 `VITE_API_BASE = https://<worker域名>/api`，构建时写入前端默认 API 地址（用户无需手动配置）。
+
+**后端（Cloudflare Worker `merge-invoice-web`）**：连到同一仓库的 `main` 分支（Worker 的 Settings → Builds → Connect），构建设置：
+
+| 设置项 | 值 |
+| --- | --- |
+| Build command | `npm run check`（不能留空，否则 `dist/` 不存在导致部署失败） |
+| Deploy command | `npx wrangler deploy -c worker/wrangler.toml` |
+
+`worker/wrangler.toml` 已配置 `ALLOW_ORIGIN = "https://mergeinvoice.pages.dev"` 放行跨域。部署后到 Worker 的 **Settings → Domains & Routes** 启用 `workers.dev` 子域，得到 `https://merge-invoice-web.<子域>.workers.dev`，把它（加 `/api`）填进上面的 `VITE_API_BASE`。
+
+手动部署：`npm run deploy`（本地先 `npx wrangler login`）。构建记录见各项目的 Deployments。
+
+说明：构建产物 `dist/` 为纯静态（相对路径部署），单独拷贝到任意静态托管也能用，但「从邮箱导入」需要 Worker 提供 `/api`（本方案通过 `VITE_API_BASE` + `ALLOW_ORIGIN` 对接）。
 
 ## 浏览器支持与已知限制
 

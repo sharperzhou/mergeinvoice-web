@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  DEFAULT_API_BASE,
   MAIL_PROVIDERS,
   MailError,
   decodeMessages,
@@ -20,6 +21,10 @@ test('服务商预设与 Worker 白名单一致', () => {
     MAIL_PROVIDERS.map((provider) => provider.id),
     ['163', '126', 'yeah', 'qq']
   );
+});
+
+test('默认 API 基址：Node 环境（无 import.meta.env）回退为同源 /api', () => {
+  assert.equal(DEFAULT_API_BASE, '/api');
 });
 
 test('parseKeywords：中英文分隔符、小写化、引号短语、空输入', () => {

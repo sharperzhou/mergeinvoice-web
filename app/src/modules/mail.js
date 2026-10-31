@@ -12,8 +12,15 @@ export const MAIL_PROVIDERS = [
   { id: 'qq', label: 'QQ 邮箱' }
 ];
 
-/** 默认 API 基址：同源部署直接用 /api；分域部署填 Worker 完整地址（配合 Worker 的 ALLOW_ORIGIN）。 */
-export const DEFAULT_API_BASE = '/api';
+/**
+ * 默认 API 基址：同源部署直接用 /api；
+ * 分域部署（前端 Pages + Worker API）可在构建时通过 VITE_API_BASE 注入 Worker 完整地址，
+ * 这样用户无需在「高级设置」里手动填写。Node 测试环境无 import.meta.env，安全回退。
+ */
+const BUILD_API_BASE =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE) || '';
+
+export const DEFAULT_API_BASE = BUILD_API_BASE || '/api';
 
 /** 邮箱 API 错误：code 取值 network / no-backend / auth / token / bad-request / server。 */
 export class MailError extends Error {
