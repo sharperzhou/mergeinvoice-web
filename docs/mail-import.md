@@ -33,7 +33,7 @@
 
 1. 安装依赖：`npm.cmd install`
 2. 登录 Cloudflare：`npx.cmd wrangler login`（浏览器授权）
-3. 构建并部署：`npm.cmd run deploy`（等价于 `vite build && wrangler deploy`）
+3. 构建并部署：`npm.cmd run deploy`（等价于 `vite build && wrangler deploy -c worker/wrangler.toml`）
 4. 部署完成后得到 `https://<项目名>.<账号>.workers.dev`，打开即可使用。
 
 自动化：在 Cloudflare 控制台把 Worker 连接到 GitHub 仓库（该 Worker 的 Settings → Builds → Connect），推送 `main` 即自动构建部署。构建命令填 `npm run check`（**不能留空**，否则不会生成 `dist/`，部署会报 assets 目录不存在），部署命令填 `npx wrangler deploy -c worker/wrangler.toml`；无需在 GitHub 配置 Secret。
@@ -82,4 +82,4 @@
 
 - 单次搜索默认返回最近 200 封含 PDF/ZIP 附件的邮件（上限 500 封）；服务端最多检查范围内最新的 1000 封候选，更早的邮件请缩小起始日期分批搜索。
 - 单个 PDF 最多 10 页（与本地导入一致），超出会被拒绝。
-- 不支持 Gmail / Outlook（需 OAuth2，暂未实现）。
+- 暂未接入其他邮箱：Outlook / Microsoft 365 已停用 Basic Auth，必须走 OAuth2（XOAUTH2，暂未实现）；Gmail 个人版可用应用专用密码接入，暂未加入服务商白名单。

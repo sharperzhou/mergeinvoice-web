@@ -16,7 +16,7 @@ npm.cmd run lint       # ESLint（app/src/** 与 worker/** 按 ES2020 基线校�
 npm.cmd run check      # 一键测试 = lint + test + build（任一失败即中止）
 npm.cmd run preview    # 预览构建产物
 npm.cmd run dev:api    # 产物模式联调：先 build，wrangler dev 直接服务 dist/ + API（http://localhost:8787）
-npm.cmd run deploy     # vite build && wrangler deploy：部署前端 + API 到 Cloudflare
+npm.cmd run deploy     # vite build && wrangler deploy -c worker/wrangler.toml：部署前端 + API 到 Cloudflare
 ```
 
 **改动后的必跑验证**：`npm.cmd lint` + `npm.cmd test` + `npm.cmd run build`。
@@ -53,7 +53,8 @@ npm.cmd run deploy     # vite build && wrangler deploy：部署前端 + API 到 
 | `app/src/modules/merge.js` | 合并规则（A5 两拼 / A4 整页 / 裁切标记）；`isPageIncluded` 排除已删页 |
 | `app/src/modules/flatten.js` | 注解外观（印章/签名）扁平化烘焙进内容流 |
 | `app/src/modules/preview.js` | pdf.js 打开与渲染（`renderInto` 按实测宽高适配） |
-| `app/src/modules/print.js` | 打印（原生 iframe 优先，失败退图片模式） |
+| `app/src/modules/print.js` | 打印（桌面原生 iframe 优先、失败退图片模式；移动端直接图片模式，DPI 降至 150） |
+| `app/src/modules/platform.js` | 运行环境识别（移动端 UA、微信/QQ/钉钉等内置浏览器），打印与分享路径据此分流 |
 | `app/src/modules/pdfjs-compat.js` | pdf.js 4.2 运行时 API 兼容层（勿为业务代码追加补丁，见「代码风格与浏览器兼容基线」） |
 | `functions/api/[[path]].js` | Pages Functions 同域代理：`/api/*` 经 Service Binding `API` 内部转发给 Worker（避开 workers.dev 被污染的网络） |
 | `worker/wrangler.toml` | Worker 配置：`main`、`[assets]` 指向 `../dist`、可选 vars（API_TOKEN/ALLOW_ORIGIN）说明 |

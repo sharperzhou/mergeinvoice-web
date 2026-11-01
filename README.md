@@ -4,7 +4,7 @@
 
 ![Vite](https://img.shields.io/badge/Vite-8.3.5-646CFF?logo=vite&logoColor=white)
 ![pdf-lib](https://img.shields.io/badge/pdf--lib-1.17.1-1B1B1B)
-![pdf.js](https://img.shields.io/badge/pdf.js-5.7.284-E84A27)
+![pdf.js](https://img.shields.io/badge/pdf.js-4.2.67-E84A27)
 ![Node](https://img.shields.io/badge/Node.js-%E2%89%A520.19-5FA04E?logo=nodedotjs&logoColor=white)
 
 ---
@@ -28,7 +28,7 @@
 | 顺序调整 | 导入列表与合并结果均支持**拖拽排序**（含边缘自动滚动） |
 | 结果编辑 | 合并结果可删除单页、重排页面，下载与打印始终按当前预览输出 |
 | 预览 | 卡片内自适应缩略图、点击放大弹窗、窗口缩放自动重渲染 |
-| 打印 | 调起系统打印对话框（失败自动降级为图片模式） |
+| 打印 | 桌面优先原生打印、失败降级图片模式；移动端走图片打印并提供 PDF 分享；微信等内置浏览器会提示改用系统浏览器 |
 | 隐私 | 全程浏览器本地解析，**无任何网络上传**，文件数据不出本机 |
 
 ## 快速开始
@@ -42,7 +42,7 @@ npm install
 npm run dev        # 开发服务器，默认 http://localhost:5173
 npm run build      # 生产构建 → dist/
 npm run preview    # 本地预览构建产物
-npm test           # 单元测试（node --test，18 个用例）
+npm test           # 单元测试（node --test）
 ```
 
 ## 使用流程
@@ -53,7 +53,7 @@ npm test           # 单元测试（node --test，18 个用例）
 
 ## 拼版规则
 
-- **页面分类**：取 MediaBox ∩ CropBox 有效盒；有效宽 > 615pt 判定为超出 A4 宽度而跳过；有效高 < 420.9445pt（A4 高度一半）判为 A5 横向发票，否则判为 A4 整页；
+- **页面分类**：取 MediaBox ∩ CropBox 有效盒；有效宽 > 615pt 判定为超出 A4 宽度而跳过；有效高 < 420.9445pt（A4 高度一半）判为 A5，否则判为 A4 整页；
 - **A5 两拼**：两页拼入同一张 A4 —— 第一页顶部对齐、水平居中；第二页旋转 180° 落于下半区；中线左右各绘制一段 10pt / 1pt 裁切标记线；
 - **A4 整页**：一页占一张 A4、顶部对齐水平居中；仅当内容高度不足整页（`h + 50 < 页高`）时在内容底部绘制裁切线；
 - **输出顺序**：所有 A5 页在前、A4 页在后，各自保持导入顺序；
@@ -76,10 +76,14 @@ MergeInvoice-web/
 │           ├── merge.js    # 拼版规则（A5 两拼 / A4 整页 / 裁切标记）
 │           ├── flatten.js  # 注解外观扁平化（印章/签名烘焙进内容流）
 │           ├── preview.js  # pdf.js 渲染（自适应宽高、DPR、任务中止）
-│           └── print.js    # 系统打印（原生优先，图片模式降级）
+│           ├── print.js    # 打印（桌面原生优先，图片模式降级）
+│           └── platform.js # 运行环境识别（移动端 / 微信等内置浏览器）
 ├── worker/                 # 可选：Cloudflare Worker（IMAP 中继 API，与静态前端同域部署）
 │   ├── wrangler.toml
 │   └── src/
+├── functions/api/[[path]].js # Pages Functions：/api/* 经 Service Binding 转发 Worker
+├── docs/                   # 用户文档（构建时复制到 dist/docs）
+├── scripts/dev.mjs         # 一键联调：并行启动 Vite 与 wrangler dev
 ├── vite.config.js          # root 'app'、base './' 相对路径部署 + pdf.js 运行时资源复制
 └── test/                   # node --test 单元测试与发票/印章夹具
 ```
@@ -104,7 +108,7 @@ MergeInvoice-web/
 
 **本地联调**：`npm run dev` 同时启动 Vite（`http://localhost:5173`，前端热更新）与 wrangler dev（Worker，代码变更自动重载），`/api` 由 Vite 代理到 Worker，邮箱导入可直接测试；首次运行若缺 `dist/` 会自动构建一次。仅想跑前端可执行 `npx vite`。
 
-**一键部署**：`npm run deploy`（= `vite build` + `wrangler deploy`，首次需 `npx wrangler login` 授权）。
+**一键部署**：`npm run deploy`（= `vite build` + `wrangler deploy -c worker/wrangler.toml`，首次需 `npx wrangler login` 授权）。
 
 ## 部署（当前方案：Pages 前端 + Functions 同域代理 + Worker API）
 
@@ -135,7 +139,8 @@ MergeInvoice-web/
 
 ## 浏览器支持与已知限制
 
-- 需支持 PDF.js 与 ES Modules 的现代浏览器（推荐近两年版本的 Chrome / Edge / Firefox）；
+- 浏览器下限：Chrome / Edge / Firefox 89、Safari 15（pdf.js 4.2 依赖 top-level await）；旧版浏览器缺失的运行时 API 由 `pdfjs-compat.js` 补齐；
+- 手机打印需系统浏览器（微信等内置浏览器不支持），打印机需支持 AirPrint / Mopria 并与手机同一 Wi-Fi，否则请用「分享 / 下载 PDF」；
 - 加密 PDF 不做真实解密（仍尝试读取结构，内容渲染可能失败）；
 - 仅处理注解的默认外观流（`/AP/N`），不处理外观状态字典；
 - 页面合并不保留可交互表单与链接注解，仅保留印章/签名等可视外观。
