@@ -65,9 +65,11 @@
         <h2>下载与打印</h2>
         <div class="toolbar">
           <button id="download-btn" class="btn" type="button">下载 PDF</button>
+          <button id="share-btn" class="btn" type="button" hidden>分享 PDF</button>
           <button id="print-btn" class="btn btn-primary" type="button">打印</button>
         </div>
         <p class="hint">浏览器未提供本地打印机枚举接口：点击「打印」后请在系统打印对话框中选择目标打印机。推荐打印参数：纸张 A4、缩放 100%（实际大小）、页边距 无。可点击页面右上角 × 删除单页，或拖拽调整页面顺序，下载与打印均按当前预览顺序输出。</p>
+        <p id="mobile-print-hint" class="hint" hidden>手机打印提示：请用系统浏览器打开（微信/QQ/钉钉等内置浏览器不支持打印），打印机需支持 AirPrint / Mopria 并与手机处于同一 Wi-Fi。若打印对话框中找不到打印机，请改用「分享 PDF」或「下载 PDF」后用 WPS / 打印 App 打印。</p>
         <div id="result-pages" class="page-grid"></div>
         <div class="panel-actions">
           <button id="back-btn-2" class="btn" type="button">上一步</button>
@@ -114,7 +116,6 @@
                 <li>IMAP 服务必须为<strong>开启</strong>状态，否则授权码正确也会登录失败；授权码可随时吊销并重新生成。</li>
                 <li>授权码仅保存在本机浏览器（60 天有效，成功使用自动顺延）；保存后输入框以掩码显示，点框内笔形图标可修改，× 可清除。</li>
                 <li>常见提示：「未检测到后端服务」= 站点未部署邮箱后端；「授权码错误」= 码不完整或 IMAP 未开启；「Unsafe Login」= 按提示在网页版邮箱放行。</li>
-                <li>完整说明（含后端部署与 FAQ）：<a href="docs/mail-import.md" target="_blank" rel="noopener">查看完整文档</a></li>
               </ul>
             </div>
           </details>

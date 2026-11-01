@@ -28,6 +28,7 @@ import {
 } from './modules/mail-store.js';
 import { mergeInvoices } from './modules/merge.js';
 import { openPdf, renderInto } from './modules/preview.js';
+import { detectInAppBrowser, isMobileBrowser } from './modules/platform.js';
 import { printPdf } from './modules/print.js';
 
 // 大图弹窗最大宽度（宽屏下允许更大的预览）
@@ -51,6 +52,7 @@ const els = {
   resultPages: document.querySelector('#result-pages'),
   downloadBtn: document.querySelector('#download-btn'),
   printBtn: document.querySelector('#print-btn'),
+  shareBtn: document.querySelector('#share-btn'),
   modal: document.querySelector('#modal'),
   modalTitle: document.querySelector('#modal-title'),
   modalCanvas: document.querySelector('#modal-canvas'),
@@ -201,9 +203,10 @@ function updateButtons() {
   els.nextBtn.disabled = !mergeable;
   els.mergeBtn.disabled = !mergeable;
   els.clearBtn.disabled = !hasRecords;
-  // 结果字节编辑期间（mergedBusy）同步锁定下载/打印，防止导出过期内容
+  // 结果字节编辑期间（mergedBusy）同步锁定下载/打印/分享，防止导出过期内容
   els.downloadBtn.disabled = !state.merged || mergedBusy;
   els.printBtn.disabled = !state.merged || mergedBusy;
+  if (els.shareBtn) els.shareBtn.disabled = !state.merged || mergedBusy;
 
   if (!canGo(currentStep)) currentStep = canGo(2) ? 2 : 1;
   applyStepVisibility();
@@ -944,22 +947,70 @@ function doDownload() {
   setStatus(`已开始下载：${state.merged.name}`);
 }
 
-/** 调起打印（系统对话框选打印机；浏览器无法枚举打印机列表）。 */
+/**
+ * 调起打印（系统对话框选打印机；浏览器无法枚举打印机列表）。
+ * 应用内置浏览器（微信/QQ/钉钉等）通常不实现打印，直接给出引导而不是静默失败。
+ */
 async function doPrint() {
   if (!state.merged) return;
+  const blocked = detectInAppBrowser();
+  if (blocked) {
+    setStatus(
+      `当前为${blocked}内置浏览器，无法直接打印：请点右上角「…」选择「在浏览器打开」后重试，或先「下载 PDF / 分享」再用打印 App 打印`
+    );
+    return;
+  }
+
   els.printBtn.disabled = true;
+  if (els.shareBtn) els.shareBtn.disabled = true;
   setStatus('正在准备打印…');
   try {
     const mode = await printPdf(state.merged.bytes);
-    setStatus(
-      mode === 'native'
-        ? '已调起系统打印对话框，请选择打印机（纸张 A4、缩放 100%、边距无）。'
-        : '已切换到图片打印模式，请在对话框中选择打印机（纸张 A4、缩放 100%、边距无）。'
-    );
+    if (mode === 'native') {
+      setStatus('已调起系统打印对话框，请选择打印机（纸张 A4、缩放 100%、边距无）。');
+    } else if (isMobileBrowser()) {
+      // 移动端即使用图片模式也依赖系统打印服务：打印机须支持 AirPrint / Mopria 且与手机同一 Wi-Fi
+      setStatus(
+        '已调起打印对话框：请选择打印机（需支持 AirPrint / Mopria，并与手机处于同一 Wi-Fi；纸张 A4、缩放 100%）。若列表为空，请改用「分享 / 下载 PDF」后用打印 App 打印。'
+      );
+    } else {
+      setStatus('已切换到图片打印模式，请在对话框中选择打印机（纸张 A4、缩放 100%、边距无）。');
+    }
   } catch (error) {
-    setStatus(`打印失败：${error && error.message ? error.message : error}`);
+    setStatus(
+      `打印失败：${error && error.message ? error.message : error}。可改用「下载 PDF」后用系统打印。`
+    );
   } finally {
     updateButtons(); // 恢复为当前状态应有的按钮可用性
+  }
+}
+
+/** 当前环境是否支持通过系统分享面板发送 PDF 文件。 */
+function canSharePdf() {
+  if (typeof navigator === 'undefined') return false;
+  if (typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') return false;
+  try {
+    const probe = new File([], 'probe.pdf', { type: 'application/pdf' });
+    return navigator.canShare({ files: [probe] });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 通过系统分享面板发送合并后的 PDF（移动端主推出口）：
+ * 可分享到 WPS、文件、打印 App 等，绕开手机浏览器发现打印机的限制。
+ */
+async function doShare() {
+  if (!state.merged || !canSharePdf()) return;
+  const file = new File([state.merged.bytes], state.merged.name, { type: 'application/pdf' });
+  try {
+    await navigator.share({ files: [file], title: state.merged.name });
+    setStatus(`已打开系统分享面板：${state.merged.name}`);
+  } catch (error) {
+    if (error && error.name === 'AbortError') return; // 用户主动取消，无需提示
+    setStatus('系统分享不可用，已改为下载 PDF');
+    doDownload();
   }
 }
 
@@ -1665,6 +1716,11 @@ els.mergeBtn.addEventListener('click', doMerge);
 els.clearBtn.addEventListener('click', clearAll);
 els.downloadBtn.addEventListener('click', doDownload);
 els.printBtn.addEventListener('click', doPrint);
+if (els.shareBtn) {
+  els.shareBtn.addEventListener('click', doShare);
+  // 仅在支持文件分享的环境（移动端浏览器）显示，避免桌面端出现无效按钮
+  els.shareBtn.hidden = !canSharePdf();
+}
 
 // 向导导航：下一步 / 上一步 / 点击步骤条
 els.nextBtn.addEventListener('click', () => goToStep(2));
@@ -1708,6 +1764,12 @@ async function rerenderVisibleThumbs() {
   } else if (currentStep === 3 && state.merged) {
     await renderResult();
   }
+}
+
+// 手机端补充打印提示（内置浏览器不支持打印、打印机发现条件）
+if (isMobileBrowser()) {
+  const mobileHint = document.querySelector('#mobile-print-hint');
+  if (mobileHint) mobileHint.hidden = false;
 }
 
 // 初始状态与版权年份

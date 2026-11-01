@@ -1,6 +1,8 @@
 import { openPdf } from './preview.js';
+import { isMobileBrowser } from './platform.js';
 
-const PRINT_DPI = 200; // 图片打印回退模式的渲染分辨率
+const PRINT_DPI = 200; // 桌面图片打印回退模式的渲染分辨率
+const MOBILE_PRINT_DPI = 150; // 移动端降低分辨率：多页 canvas + PNG 同时驻留内存，低端机易 OOM
 const FALLBACK_TIMEOUT_MS = 6000; // 原生打印等待超时，超时后回退图片打印
 
 /**
@@ -8,22 +10,26 @@ const FALLBACK_TIMEOUT_MS = 6000; // 原生打印等待超时，超时后回退�
  * 浏览器无法枚举本地打印机，只能调起系统打印对话框（window.print），
  * 由用户在对话框中选择打印机与纸张。
  *
- * 优先尝试在隐藏 iframe 中加载 PDF blob 调起原生打印（保留矢量与打印机驱动选项）；
- * 若 iframe 方式不可用（内嵌 PDF 查看器缺失、被策略禁用等），回退为逐页渲染 PNG 的图片打印。
+ * 桌面端优先尝试在隐藏 iframe 中加载 PDF blob 调起原生打印（保留矢量与打印机驱动选项），
+ * 失败则回退为逐页渲染 PNG 的图片打印；
+ * 移动端 iframe 内嵌 PDF 打印不可用（Android 不内嵌渲染 PDF、iOS 不支持 iframe 打印），
+ * 故直接走图片打印（页面级 window.print 由系统打印服务 / AirPrint 接管）。
  *
  * @returns {Promise<'native'|'image'>} 实际使用的打印方式
  */
 export async function printPdf(bytes) {
-  if (tryNativePrint(bytes)) return 'native';
+  if (!isMobileBrowser()) {
+    const printed = await tryNativePrint(bytes);
+    if (printed) return 'native';
+  }
   await imagePrint(bytes);
   return 'image';
 }
 
 /**
  * 隐藏 iframe 加载 PDF 并调起系统打印对话框。
- * 返回同步布尔值：false 表示立即走图片打印回退；
- * true 表示已触发打印流程（内部异步完成 resolve，失败自动回退由调用方处理不到——
- * 此处通过 Promise 在超时/焦点回调中 resolve，真正的失败会 reject 使上层回退）。
+ * 返回 Promise<boolean>：true 表示已触发打印流程；
+ * false 表示 iframe 方案不可用，调用方应走图片打印回退。
  */
 function tryNativePrint(bytes) {
   try {
@@ -62,7 +68,7 @@ function tryNativePrint(bytes) {
 
       const onLoad = () => {
         const frameWindow = frame.contentWindow;
-        if (!frameWindow) {
+        if (!frameWindow || typeof frameWindow.print !== 'function') {
           finish(reject, new Error('无法访问打印文档'));
           return;
         }
@@ -81,7 +87,7 @@ function tryNativePrint(bytes) {
         if (settled) return;
         try {
           const frameWindow = frame.contentWindow;
-          if (frameWindow) {
+          if (frameWindow && typeof frameWindow.print === 'function') {
             frameWindow.focus();
             frameWindow.print();
             finish(resolve, true);
@@ -111,6 +117,7 @@ function tryNativePrint(bytes) {
  * 图片打印回退：逐页渲染为 PNG，放入 #print-root，再调用 window.print()。
  * 打印样式（styles.css @media print）会隐藏页面其余内容并将 #print-root 图片
  * 拉伸为 210mm×297mm 整页输出。afterprint 时清理图片与 blob URL。
+ * 移动端用更低 DPI，避免多页位图同时驻留内存导致崩溃。
  */
 async function imagePrint(bytes) {
   const pdf = await openPdf(bytes);
@@ -118,11 +125,12 @@ async function imagePrint(bytes) {
   root.textContent = '';
   const images = [];
   const urls = [];
+  const dpi = isMobileBrowser() ? MOBILE_PRINT_DPI : PRINT_DPI;
 
   try {
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: PRINT_DPI / 72 }); // pt → px（72pt = 1in）
+      const viewport = page.getViewport({ scale: dpi / 72 }); // pt → px（72pt = 1in）
       const canvas = document.createElement('canvas');
       canvas.width = Math.floor(viewport.width);
       canvas.height = Math.floor(viewport.height);
